@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Infinity Math</title>
+<style>
+  :root{--bg1:#0f0f1a;--bg2:#1a1030;--neo:#7a5cff;--glow:#a78bfa;--ok:#22c55e;--bad:#ef4444;--txt:#eae9ff}
+  *{box-sizing:border-box}
+  html,body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial}
+  body{
+    color:var(--txt);
+    background:radial-gradient(1200px 800px at 80% -20%, #2b1d55 0%, transparent 60%),
+               radial-gradient(900px 600px at -10% 120%, #241a4a 0%, transparent 60%),
+               linear-gradient(135deg,var(--bg1),var(--bg2));
+    overflow:auto;min-height:100dvh;padding-bottom:calc(env(safe-area-inset-bottom,0px) + 12px)
+  }
+  .wrap{display:grid;grid-template-rows:auto 1fr auto;min-height:100dvh;max-width:900px;margin:0 auto;padding:18px}
+  header,footer{display:flex;align-items:center;justify-content:space-between;gap:14px}
+  header h1{margin:0;font-weight:700;letter-spacing:.5px;font-size:22px;display:flex;align-items:center;gap:10px}
+  .chip{padding:6px 10px;border:1px solid #3b2b66;border-radius:999px;background:#150f2dba;backdrop-filter:blur(6px)}
+  .row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  #game{position:relative;display:grid;place-items:center;border-radius:20px;border:1px solid #2d2253;
+    background:linear-gradient(180deg,#140e28ef,#0f0a21e0);box-shadow:0 10px 40px #00000060;padding:24px;overflow:visible}
+  .infinity{position:absolute;inset:-10% -10% auto -10%;height:220px;opacity:.08;pointer-events:none;filter:blur(.2px)}
+  .infinity path{stroke:var(--glow);stroke-width:10;fill:none;stroke-linecap:round}
+  .infinity .pulse{animation:pulse 2.8s ease-in-out infinite}
+  @keyframes pulse{0%,100%{opacity:.35}50%{opacity:1}}
+  .hud{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-bottom:10px}
+  .meter{height:12px;background:#271c4a;border:1px solid #3a2a69;border-radius:999px;overflow:hidden;min-width:260px}
+  .meter>i{display:block;height:100%;width:100%;transform-origin:left center;background:linear-gradient(90deg,#6ee7b7,#fcd34d,#f472b6);transition:transform .1s}
+  .score{font-size:15px}.score b{font-size:18px}.streak{font-weight:700}
+  .card{display:grid;gap:16px;place-items:center;text-align:center;padding:14px 10px;width:min(680px,100%)}
+  .eq{font-size:clamp(28px,6vw,56px);letter-spacing:.6px}
+  .input{display:flex;gap:10px;width:min(480px,100%);background:#100a24;border:1px solid #2d2253;border-radius:14px;padding:10px 12px;flex-wrap:wrap}
+  .input input{flex:1;background:transparent;border:0;outline:none;color:var(--txt);font-size:22px;letter-spacing:.4px;min-height:44px}
+  .input button{min-height:44px}
+  @media (max-width:430px){.input{display:grid;grid-template-columns:1fr;gap:8px}.input button{width:100%}}
+  .btn{border:1px solid #44307c;background:#1a1237;color:var(--txt);padding:10px 14px;border-radius:12px;font-weight:600;cursor:pointer}
+  .btn.primary{border-color:#6d50d6;background:linear-gradient(180deg,#2a1e55,#1c143d)}
+  .btn.ghost{background:transparent}
+  .btn:active{transform:translateY(1px)}
+  .pill{padding:6px 10px;border-radius:999px;background:#1b1237;border:1px solid #3b2b66}
+  .grid{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+  .kbd{padding:5px 8px;border:1px solid #3b2b66;background:#140e28;border-radius:8px;font-size:12px;color:#c8c5ff}
+  .ok{color:var(--ok)}.bad{color:var(--bad)}.shake{animation:shake .25s linear}
+  @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+  dialog{border:1px solid #3b2b66;border-radius:16px;background:#0e0a1f;color:var(--txt);padding:0;max-width:min(560px,92%)}
+  dialog::backdrop{background:#0006;backdrop-filter:blur(1px)}
+  .dlg-h{padding:14px 16px;border-bottom:1px solid #2e2257;display:flex;justify-content:space-between;align-items:center}
+  .dlg-b{padding:14px 16px;display:grid;gap:12px}
+  .opt{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center}
+  .switch{appearance:none;width:42px;height:24px;border-radius:999px;background:#2a1f50;border:1px solid #3d2f72;position:relative;cursor:pointer}
+  .switch:checked{background:#4330a2}
+  .switch::after{content:"";position:absolute;top:50%;left:3px;translate:0 -50%;width:18px;height:18px;border-radius:50%;background:#e9e6ff;transition:left .2s}
+  .switch:checked::after{left:21px}
+  .hr{height:1px;background:#2e2257;margin:6px 0}
+  .muted{opacity:.7}
+  footer{opacity:.85}
+  a{color:#c7b7ff}
+  .lives b{letter-spacing:.5px}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>∞ Infinity Math</h1>
+      <div class="row">
+        <span class="chip" id="modeChip">Endless</span>
+        <button class="btn ghost" id="openSettings">Settings</button>
+      </div>
+    </header>
+
+    <main id="game">
+      <svg class="infinity" viewBox="0 0 600 300" aria-hidden="true">
+        <path d="M75,150c0,-60 50,-100 110,-100c100,0 130,200 230,200c60,0 110,-40 110,-100c0,-60 -50,-100 -110,-100c-100,0 -130,200 -230,200c-60,0 -110,-40 -110,-100z" class="pulse"/>
+      </svg>
+
+      <div class="hud">
+        <div class="meter" aria-label="time"><i id="timeFill" style="transform:scaleX(1)"></i></div>
+        <div class="chip score">Score <b id="score">0</b></div>
+        <div class="chip">Best <b id="best">0</b></div>
+        <div class="chip lives">Lives <b id="lives">♥♥♥</b></div>
+      </div>
+
+      <div class="card">
+        <div id="equation" class="eq">Press Start</div>
+
+        <div class="input" id="inputBox">
+          <input id="answer" inputmode="numeric" autocomplete="off" placeholder="Type answer…" />
+          <button id="submit" class="btn primary">Enter</button>
+        </div>
+
+        <div class="grid muted">
+          <span class="kbd">Enter</span> submit
+          <span class="kbd">Space</span> start/pause
+          <span class="kbd">Backspace</span> clear
+        </div>
+        <div class="row">
+          <button id="start" class="btn primary">Start ∞ Run</button>
+          <button id="pause" class="btn">Pause</button>
+          <button id="reset" class="btn ghost">Reset</button>
+        </div>
+        <div id="feedback" class="muted"></div>
+      </div>
+    </main>
+
+    <footer>
+      <div class="muted">Built for speed. 3 lives. 5s per question with carryover.</div>
+      <div><a href="#" id="how">How to play</a></div>
+    </footer>
+  </div>
+
+  <!-- Settings -->
+  <dialog id="settings">
+    <div class="dlg-h">
+      <strong>Game Settings</strong>
+      <button class="btn ghost" id="closeSettings">Close</button>
+    </div>
+    <div class="dlg-b">
+      <div class="opt">
+        <div>Operations<div class="muted">Pick which symbols appear</div></div>
+        <div>
+          <label class="pill"><input type="checkbox" id="opAdd" checked /> +</label>
+          <label class="pill"><input type="checkbox" id="opSub" checked /> −</label>
+          <label class="pill"><input type="checkbox" id="opMul" checked /> ×</label>
+          <label class="pill"><input type="checkbox" id="opDiv" checked /> ÷</label>
+          <label class="pill"><input type="checkbox" id="opPow" /> ^</label>
+        </div>
+      </div>
+
+      <div class="opt">
+        <div>Per-question time<div class="muted">Fixed by rules</div></div>
+        <div><span class="pill">5s</span></div>
+      </div>
+
+      <div class="opt">
+        <div>Sound</div>
+        <input id="soundToggle" class="switch" type="checkbox" checked />
+      </div>
+
+      <div class="hr"></div>
+      <button id="saveSettings" class="btn primary">Save</button>
+    </div>
+  </dialog>
+
+  <!-- How-to -->
+  <dialog id="howDlg">
+    <div class="dlg-h">
+      <strong>How to play</strong>
+      <button class="btn ghost" id="howClose">Close</button>
+    </div>
+    <div class="dlg-b">
+      <p>You have <b>3 lives</b>. Each question grants <b>5 seconds</b>. Time left when you answer is <b>added</b> to the next question’s 5 seconds. Wrong or timeout costs a life and clears carryover.</p>
+      <ul>
+        <li><b>Enter</b> submits, <b>Space</b> pauses.</li>
+        <li>Score scales with streak multiplier as before.</li>
+      </ul>
+    </div>
+  </dialog>
+
+<script>
+(() => {
+  const eqEl = document.getElementById('equation');
+  const ansEl = document.getElementById('answer');
+  const subBtn = document.getElementById('submit');
+  const startBtn = document.getElementById('start');
+  const pauseBtn = document.getElementById('pause');
+  const resetBtn = document.getElementById('reset');
+  const timeFill = document.getElementById('timeFill');
+  const scoreEl = document.getElementById('score');
+  const bestEl = document.getElementById('best');
+  const livesEl = document.getElementById('lives');
+  const feedback = document.getElementById('feedback');
+  const inputBox = document.getElementById('inputBox');
+
+  const settingsDlg = document.getElementById('settings');
+  const openSettings = document.getElementById('openSettings');
+  const closeSettings = document.getElementById('closeSettings');
+  const saveSettings = document.getElementById('saveSettings');
+
+  const opAdd = document.getElementById('opAdd');
+  const opSub = document.getElementById('opSub');
+  const opMul = document.getElementById('opMul');
+  const opDiv = document.getElementById('opDiv');
+  const opPow = document.getElementById('opPow');
+  const soundToggle = document.getElementById('soundToggle');
+
+  const how = document.getElementById('how');
+  const howDlg = document.getElementById('howDlg');
+  const howClose = document.getElementById('howClose');
+
+  const state = {
+    playing:false,
+    score:0,
+    best: Number(localStorage.getItem('infinity_best')||0),
+    streak:0,
+    mult:1,
+    ops:['+','-','*','/'],
+    pow:false,
+    level:1,
+    current:{text:'', value:0},
+    timer:null,
+    lastTick:0,
+    sfx:true,
+    maxLives:3,
+    lives:3,
+    perQ:5,
+    carry:0,
+    tLeftSec:0,
+    tTotalSec:0
+  };
+  bestEl.textContent = state.best;
+
+  const sfx = (() => {
+    const ctx = new (window.AudioContext||window.webkitAudioContext)();
+    function beep(type='sine', freq=880, dur=0.08, gain=0.04){
+      if(!state.sfx) return;
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.type=type; o.frequency.value=freq;
+      g.gain.value=gain; o.connect(g); g.connect(ctx.destination);
+      o.start(); o.stop(ctx.currentTime+dur);
+    }
+    return {ok:()=>beep('triangle',940,0.07,0.05), bad:()=>beep('square',220,0.14,0.05)};
+  })();
+
+  function rnd(a,b){return Math.floor(Math.random()*(b-a+1))+a}
+  function choice(arr){return arr[Math.floor(Math.random()*arr.length)]}
+  function livesStr(n){return '♥'.repeat(n)+'♡'.repeat(state.maxLives-n)}
+  function setMeterFrac(frac){ timeFill.style.transform = `scaleX(${Math.max(0,Math.min(1,frac))})`; }
+
+  function nextEquation(){
+    const L = state.level;
+    const usePow = state.pow && L>6 && Math.random()<Math.min(0.15+(L-6)*0.02,0.35);
+    const ops = state.ops.slice();
+
+    let a,b,op,txt,val;
+    if(usePow){
+      a = rnd(2, Math.min(9, 3+Math.floor(L/2)));
+      b = rnd(2, Math.min(4, 2+Math.floor(L/4)));
+      op = '^'; val = Math.pow(a,b); txt = `${a} ^ ${b}`;
+    } else {
+      op = choice(ops);
+      const maxN = Math.min(9+L*2, 99 + L*3);
+      if(op === '+'){ a = rnd(0,maxN); b = rnd(0,maxN); val = a+b; txt = `${a} + ${b}`; }
+      else if(op === '-'){ a = rnd(0,maxN); b = rnd(0,maxN); if(a<b) [a,b]=[b,a]; val = a-b; txt = `${a} − ${b}`; }
+      else if(op === '*'){ a = rnd(2,Math.min(12,4+Math.floor(L/2))); b = rnd(2,Math.min(12,4+Math.floor(L/2))); val = a*b; txt = `${a} × ${b}`; }
+      else { b = rnd(2,Math.min(12,4+Math.floor(L/2))); val = rnd(2,Math.min(12,4+Math.floor(L/2))); a = b*val; txt = `${a} ÷ ${b}`; }
+    }
+    state.current = {text:txt, value:val};
+    eqEl.textContent = txt;
+
+    state.tTotalSec = state.perQ + Math.max(0, state.carry);
+    state.tLeftSec = state.tTotalSec;
+    setMeterFrac(1);
+  }
+
+  function start(){
+    if(state.playing) return;
+    state.playing = true;
+    feedback.textContent=''; ansEl.value=''; ansEl.focus();
+    setTimeout(()=> ansEl.scrollIntoView({block:'center'}), 50);
+    if(!state.current.text) nextEquation();
+    state.lastTick = performance.now();
+    loop();
+  }
+
+  function pause(){
+    state.playing = !state.playing;
+    if(state.playing){ state.lastTick = performance.now(); loop(); }
+  }
+
+  function reset(){
+    state.playing=false; state.score=0; state.streak=0; state.mult=1; state.level=1;
+    scoreEl.textContent=0; state.carry=0;
+    state.lives=state.maxLives; livesEl.textContent = livesStr(state.lives);
+    state.current={text:'', value:0}; eqEl.textContent='Press Start';
+    feedback.textContent=''; setMeterFrac(1); ansEl.value='';
+  }
+
+  function award(points){
+    state.score += Math.floor(points * state.mult);
+    scoreEl.textContent = state.score;
+    if(state.score>state.best){ state.best = state.score; localStorage.setItem('infinity_best', state.best); bestEl.textContent = state.best; }
+  }
+
+  function onCorrect(){
+    sfx.ok();
+    state.streak++;
+    state.mult = 1 + Math.min(2.5, Math.floor(state.streak/5)*0.25 + state.streak*0.02);
+    const base = 10 + state.level*2;
+    award(base);
+    state.level += 1;
+
+    const leftover = Math.max(0, state.tLeftSec);
+    state.carry = leftover;                 // carry time to next question
+    feedback.innerHTML = `<span class="ok">Correct.</span> +${Math.floor(base*state.mult)} pts • carry ${leftover.toFixed(1)}s`;
+    nextEquation();
+  }
+
+  function loseLife(reason){
+    sfx.bad();
+    state.lives = Math.max(0, state.lives-1);
+    livesEl.textContent = livesStr(state.lives);
+    state.streak = 0; state.mult = 1; state.carry = 0;   // clear carry on fail
+    if(state.lives<=0){ gameOver(); return; }
+    feedback.innerHTML = `<span class="bad">${reason==='timeout'?'Time up':'Wrong'}.</span> Lives left: ${state.lives}`;
+    nextEquation();
+  }
+
+  function onWrong(){ loseLife('wrong'); }
+
+  function submit(){
+    if(!state.playing) return;
+    const raw = ansEl.value.trim();
+    if(raw==='') return;
+    const num = Number(raw);
+    ansEl.value='';
+    if(Number.isFinite(num) && num === state.current.value){ onCorrect(); }
+    else onWrong();
+    setTimeout(()=> ansEl.scrollIntoView({block:'center'}), 0);
+  }
+
+  function loop(){
+    if(!state.playing) return;
+    const now = performance.now();
+    const dt = (now - state.lastTick)/1000;
+    state.lastTick = now;
+
+    state.tLeftSec -= dt;
+    const frac = Math.max(0, state.tLeftSec) / state.tTotalSec;
+    setMeterFrac(frac);
+
+    if(state.tLeftSec <= 0){
+      loseLife('timeout');
+      return;
+    }
+    state.timer = requestAnimationFrame(loop);
+  }
+
+  function gameOver(){
+    state.playing = false;
+    feedback.innerHTML = `<span class="bad">Run over.</span> Final score: <b>${state.score}</b>`;
+    eqEl.textContent = '∞ Run Over';
+  }
+
+  function applySettingsToState(){
+    const ops = [];
+    if(opAdd.checked) ops.push('+');
+    if(opSub.checked) ops.push('-');
+    if(opMul.checked) ops.push('*');
+    if(opDiv.checked) ops.push('/');
+    if(ops.length===0){ ops.push('+'); opAdd.checked = true; }
+    state.ops = ops;
+    state.pow = opPow.checked;
+    state.sfx = soundToggle.checked;
+  }
+
+  subBtn.addEventListener('click', submit);
+  startBtn.addEventListener('click', ()=>{ if(!state.current.text){ state.lives=state.maxLives; livesEl.textContent=livesStr(state.lives); nextEquation(); } start(); });
+  pauseBtn.addEventListener('click', pause);
+  resetBtn.addEventListener('click', reset);
+
+  ansEl.addEventListener('focus', ()=> setTimeout(()=> ansEl.scrollIntoView({block:'center'}), 50));
+  ansEl.addEventListener('keydown', (e)=>{
+    if(e.key==='Enter'){ submit(); }
+    if(e.key==='Escape'){ ansEl.blur(); }
+  });
+
+  document.addEventListener('keydown', (e)=>{
+    if(e.key===' '){ e.preventDefault(); pause(); }
+    if(e.key==='Backspace' && document.activeElement!==ansEl){ e.preventDefault(); ansEl.value=''; }
+  });
+
+  openSettings.addEventListener('click', ()=>settingsDlg.showModal());
+  closeSettings.addEventListener('click', ()=>settingsDlg.close());
+  saveSettings.addEventListener('click', ()=>{ applySettingsToState(); settingsDlg.close(); });
+
+  how.addEventListener('click', (e)=>{ e.preventDefault(); howDlg.showModal(); });
+  howClose.addEventListener('click', ()=> howDlg.close());
+
+  try{
+    const pref = JSON.parse(localStorage.getItem('inf_prefs')||'{}');
+    if(pref){
+      opAdd.checked = pref.add ?? true; opSub.checked = pref.sub ?? true;
+      opMul.checked = pref.mul ?? true; opDiv.checked = pref.div ?? true;
+      opPow.checked = pref.pow ?? false; soundToggle.checked = pref.sfx ?? true;
+      applySettingsToState();
+    }
+  }catch(_){}
+  window.addEventListener('beforeunload', ()=> {
+    const pref = {
+      add:opAdd.checked, sub:opSub.checked, mul:opMul.checked, div:opDiv.checked, pow:opPow.checked, sfx:soundToggle.checked
+    };
+    localStorage.setItem('inf_prefs', JSON.stringify(pref));
+  });
+
+  livesEl.textContent = livesStr(state.lives);
+  inputBox.addEventListener('click', ()=> ansEl.focus());
+})();
+</script>
+</body>
+</html>
