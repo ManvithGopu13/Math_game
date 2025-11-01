@@ -9,6 +9,8 @@ Lose all 3 lives → game over, final score shown.
 
 Designed for both desktop and mobile — no installs, no backend.
 
+**Live:** https://manvithgopu13.github.io/Math_game/
+
 ---
 
 ## 🎮 Gameplay Summary
@@ -137,8 +139,9 @@ Zero dependencies. Zero build steps. Runs in any modern browser.
 ---
 
 ## 📂 File Layout
+/
 ├─ index.html    # Full game in one file
-└─ README.md     # You’re reading this
+└─ README.md     # You're reading this
 
 Everything is contained inside `index.html`.
 
