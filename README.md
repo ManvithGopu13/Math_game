@@ -140,6 +140,7 @@ Zero dependencies. Zero build steps. Runs in any modern browser.
 
 ## 📂 File Layout
 /
+
 ├─ index.html        # Full game in one file
 
 ├─ index_old.html    # Old version of the game
