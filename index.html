@@ -29,7 +29,7 @@
   .hud{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-bottom:10px}
   .meter{height:12px;background:#271c4a;border:1px solid #3a2a69;border-radius:999px;overflow:hidden;min-width:260px}
   .meter>i{display:block;height:100%;width:100%;transform-origin:left center;background:linear-gradient(90deg,#6ee7b7,#fcd34d,#f472b6);transition:transform .1s}
-  .score{font-size:15px}.score b{font-size:18px}.streak{font-weight:700}
+  .score{font-size:15px}.score b{font-size:18px}
   .card{display:grid;gap:16px;place-items:center;text-align:center;padding:14px 10px;width:min(680px,100%)}
   .eq{font-size:clamp(28px,6vw,56px);letter-spacing:.6px}
   .input{display:flex;gap:10px;width:min(480px,100%);background:#100a24;border:1px solid #2d2253;border-radius:14px;padding:10px 12px;flex-wrap:wrap}
@@ -66,7 +66,7 @@
     <header>
       <h1>∞ Infinity Math</h1>
       <div class="row">
-        <span class="chip" id="modeChip">Endless</span>
+        <span class="chip">Endless</span>
         <button class="btn ghost" id="openSettings">Settings</button>
       </div>
     </header>
@@ -77,7 +77,7 @@
       </svg>
 
       <div class="hud">
-        <div class="meter" aria-label="time"><i id="timeFill" style="transform:scaleX(1)"></i></div>
+        <div class="meter"><i id="timeFill" style="transform:scaleX(1)"></i></div>
         <div class="chip score">Score <b id="score">0</b></div>
         <div class="chip">Best <b id="best">0</b></div>
         <div class="chip lives">Lives <b id="lives">♥♥♥</b></div>
@@ -85,12 +85,10 @@
 
       <div class="card">
         <div id="equation" class="eq">Press Start</div>
-
         <div class="input" id="inputBox">
           <input id="answer" inputmode="numeric" autocomplete="off" placeholder="Type answer…" />
           <button id="submit" class="btn primary">Enter</button>
         </div>
-
         <div class="grid muted">
           <span class="kbd">Enter</span> submit
           <span class="kbd">Space</span> start/pause
@@ -106,12 +104,11 @@
     </main>
 
     <footer>
-      <div class="muted">Built for speed. 3 lives. 5s per question with carryover.</div>
+      <div class="muted">3 lives. 5s per question with carryover.</div>
       <div><a href="#" id="how">How to play</a></div>
     </footer>
   </div>
 
-  <!-- Settings -->
   <dialog id="settings">
     <div class="dlg-h">
       <strong>Game Settings</strong>
@@ -128,34 +125,20 @@
           <label class="pill"><input type="checkbox" id="opPow" /> ^</label>
         </div>
       </div>
-
-      <div class="opt">
-        <div>Per-question time<div class="muted">Fixed by rules</div></div>
-        <div><span class="pill">5s</span></div>
-      </div>
-
-      <div class="opt">
-        <div>Sound</div>
-        <input id="soundToggle" class="switch" type="checkbox" checked />
-      </div>
-
+      <div class="opt"><div>Per-question time<div class="muted">Fixed</div></div><div><span class="pill">5s</span></div></div>
+      <div class="opt"><div>Sound</div><input id="soundToggle" class="switch" type="checkbox" checked /></div>
       <div class="hr"></div>
       <button id="saveSettings" class="btn primary">Save</button>
     </div>
   </dialog>
 
-  <!-- How-to -->
   <dialog id="howDlg">
     <div class="dlg-h">
       <strong>How to play</strong>
       <button class="btn ghost" id="howClose">Close</button>
     </div>
     <div class="dlg-b">
-      <p>You have <b>3 lives</b>. Each question grants <b>5 seconds</b>. Time left when you answer is <b>added</b> to the next question’s 5 seconds. Wrong or timeout costs a life and clears carryover.</p>
-      <ul>
-        <li><b>Enter</b> submits, <b>Space</b> pauses.</li>
-        <li>Score scales with streak multiplier as before.</li>
-      </ul>
+      <p>You have <b>3 lives</b>. Each question grants <b>5 seconds</b>. Time left when you answer is added to the next question’s 5 seconds. Wrong or timeout costs a life and clears carryover.</p>
     </div>
   </dialog>
 
@@ -191,212 +174,176 @@
   const howClose = document.getElementById('howClose');
 
   const state = {
-    playing:false,
-    score:0,
-    best: Number(localStorage.getItem('infinity_best')||0),
-    streak:0,
-    mult:1,
-    ops:['+','-','*','/'],
-    pow:false,
-    level:1,
-    current:{text:'', value:0},
-    timer:null,
-    lastTick:0,
-    sfx:true,
-    maxLives:3,
-    lives:3,
-    perQ:5,
-    carry:0,
-    tLeftSec:0,
-    tTotalSec:0
+    playing:false, over:false,
+    score:0, best:Number(localStorage.getItem('infinity_best')||0),
+    streak:0, mult:1, ops:['+','-','*','/'], pow:false, level:1,
+    current:{text:'',value:0},
+    timer:null, lastTick:0, sfx:true,
+    maxLives:3, lives:3,
+    perQ:5, carry:0, tLeftSec:0, tTotalSec:0
   };
   bestEl.textContent = state.best;
 
   const sfx = (() => {
     const ctx = new (window.AudioContext||window.webkitAudioContext)();
-    function beep(type='sine', freq=880, dur=0.08, gain=0.04){
+    function beep(type='sine', f=880, d=0.08, g=0.04){
       if(!state.sfx) return;
-      const o = ctx.createOscillator(), g = ctx.createGain();
-      o.type=type; o.frequency.value=freq;
-      g.gain.value=gain; o.connect(g); g.connect(ctx.destination);
-      o.start(); o.stop(ctx.currentTime+dur);
+      const o = ctx.createOscillator(), x = ctx.createGain();
+      o.type=type; o.frequency.value=f; x.gain.value=g; o.connect(x); x.connect(ctx.destination);
+      o.start(); o.stop(ctx.currentTime+d);
     }
     return {ok:()=>beep('triangle',940,0.07,0.05), bad:()=>beep('square',220,0.14,0.05)};
   })();
 
   function rnd(a,b){return Math.floor(Math.random()*(b-a+1))+a}
-  function choice(arr){return arr[Math.floor(Math.random()*arr.length)]}
+  function choice(a){return a[Math.floor(Math.random()*a.length)]}
   function livesStr(n){return '♥'.repeat(n)+'♡'.repeat(state.maxLives-n)}
-  function setMeterFrac(frac){ timeFill.style.transform = `scaleX(${Math.max(0,Math.min(1,frac))})`; }
+  function setMeterFrac(q){timeFill.style.transform=`scaleX(${Math.max(0,Math.min(1,q))})`}
+
+  function scheduleLoop(){
+    if(!state.playing) return;
+    state.lastTick = performance.now();
+    state.timer = requestAnimationFrame(loop);
+  }
 
   function nextEquation(){
     const L = state.level;
     const usePow = state.pow && L>6 && Math.random()<Math.min(0.15+(L-6)*0.02,0.35);
-    const ops = state.ops.slice();
-
     let a,b,op,txt,val;
     if(usePow){
-      a = rnd(2, Math.min(9, 3+Math.floor(L/2)));
-      b = rnd(2, Math.min(4, 2+Math.floor(L/4)));
-      op = '^'; val = Math.pow(a,b); txt = `${a} ^ ${b}`;
-    } else {
-      op = choice(ops);
-      const maxN = Math.min(9+L*2, 99 + L*3);
-      if(op === '+'){ a = rnd(0,maxN); b = rnd(0,maxN); val = a+b; txt = `${a} + ${b}`; }
-      else if(op === '-'){ a = rnd(0,maxN); b = rnd(0,maxN); if(a<b) [a,b]=[b,a]; val = a-b; txt = `${a} − ${b}`; }
-      else if(op === '*'){ a = rnd(2,Math.min(12,4+Math.floor(L/2))); b = rnd(2,Math.min(12,4+Math.floor(L/2))); val = a*b; txt = `${a} × ${b}`; }
-      else { b = rnd(2,Math.min(12,4+Math.floor(L/2))); val = rnd(2,Math.min(12,4+Math.floor(L/2))); a = b*val; txt = `${a} ÷ ${b}`; }
+      a=rnd(2,Math.min(9,3+Math.floor(L/2))); b=rnd(2,Math.min(4,2+Math.floor(L/4)));
+      op='^'; val=Math.pow(a,b); txt=`${a} ^ ${b}`;
+    }else{
+      op=choice(state.ops);
+      const maxN=Math.min(9+L*2,99+L*3);
+      if(op==='+'){a=rnd(0,maxN);b=rnd(0,maxN);val=a+b;txt=`${a} + ${b}`;}
+      else if(op==='-'){a=rnd(0,maxN);b=rnd(0,maxN);if(a<b)[a,b]=[b,a];val=a-b;txt=`${a} − ${b}`;}
+      else if(op==='*'){a=rnd(2,Math.min(12,4+Math.floor(L/2)));b=rnd(2,Math.min(12,4+Math.floor(L/2)));val=a*b;txt=`${a} × ${b}`;}
+      else{b=rnd(2,Math.min(12,4+Math.floor(L/2)));val=rnd(2,Math.min(12,4+Math.floor(L/2)));a=b*val;txt=`${a} ÷ ${b}`;}
     }
-    state.current = {text:txt, value:val};
-    eqEl.textContent = txt;
-
-    state.tTotalSec = state.perQ + Math.max(0, state.carry);
-    state.tLeftSec = state.tTotalSec;
+    state.current={text:txt,value:val};
+    eqEl.textContent=txt;
+    state.tTotalSec = state.perQ + Math.max(0,state.carry);
+    state.tLeftSec  = state.tTotalSec;
     setMeterFrac(1);
   }
 
+  function startNewRun(){
+    state.over=false; state.score=0; state.streak=0; state.mult=1; state.level=1;
+    scoreEl.textContent=0; state.carry=0; state.lives=state.maxLives;
+    livesEl.textContent = livesStr(state.lives);
+    state.current={text:'',value:0}; feedback.textContent='';
+    nextEquation();
+  }
+
   function start(){
-    if(state.playing) return;
-    state.playing = true;
-    feedback.textContent=''; ansEl.value=''; ansEl.focus();
-    setTimeout(()=> ansEl.scrollIntoView({block:'center'}), 50);
+    if(state.over) startNewRun();
     if(!state.current.text) nextEquation();
-    state.lastTick = performance.now();
-    loop();
+    if(state.playing) return;
+    state.playing=true;
+    ansEl.value=''; ansEl.focus(); setTimeout(()=>ansEl.scrollIntoView({block:'center'}),50);
+    scheduleLoop();
   }
 
   function pause(){
     state.playing = !state.playing;
-    if(state.playing){ state.lastTick = performance.now(); loop(); }
+    if(state.playing) scheduleLoop();
   }
 
   function reset(){
-    state.playing=false; state.score=0; state.streak=0; state.mult=1; state.level=1;
-    scoreEl.textContent=0; state.carry=0;
-    state.lives=state.maxLives; livesEl.textContent = livesStr(state.lives);
-    state.current={text:'', value:0}; eqEl.textContent='Press Start';
-    feedback.textContent=''; setMeterFrac(1); ansEl.value='';
+    state.playing=false; state.over=false;
+    state.score=0; state.streak=0; state.mult=1; state.level=1; state.carry=0;
+    scoreEl.textContent=0; state.lives=state.maxLives; livesEl.textContent=livesStr(state.lives);
+    state.current={text:'',value:0}; eqEl.textContent='Press Start'; feedback.textContent='';
+    setMeterFrac(1); ansEl.value='';
   }
 
-  function award(points){
-    state.score += Math.floor(points * state.mult);
-    scoreEl.textContent = state.score;
-    if(state.score>state.best){ state.best = state.score; localStorage.setItem('infinity_best', state.best); bestEl.textContent = state.best; }
+  function award(p){
+    state.score += Math.floor(p*state.mult);
+    scoreEl.textContent=state.score;
+    if(state.score>state.best){state.best=state.score;localStorage.setItem('infinity_best',state.best);bestEl.textContent=state.best;}
   }
 
   function onCorrect(){
     sfx.ok();
-    state.streak++;
-    state.mult = 1 + Math.min(2.5, Math.floor(state.streak/5)*0.25 + state.streak*0.02);
-    const base = 10 + state.level*2;
-    award(base);
-    state.level += 1;
-
-    const leftover = Math.max(0, state.tLeftSec);
-    state.carry = leftover;                 // carry time to next question
-    feedback.innerHTML = `<span class="ok">Correct.</span> +${Math.floor(base*state.mult)} pts • carry ${leftover.toFixed(1)}s`;
-    nextEquation();
+    state.streak++; state.mult = 1 + Math.min(2.5, Math.floor(state.streak/5)*0.25 + state.streak*0.02);
+    const base=10+state.level*2; award(base); state.level++;
+    const leftover=Math.max(0,state.tLeftSec); state.carry=leftover;
+    feedback.innerHTML=`<span class="ok">Correct.</span> +${Math.floor(base*state.mult)} pts • carry ${leftover.toFixed(1)}s`;
+    nextEquation(); // keep running; loop already scheduled
   }
 
   function loseLife(reason){
     sfx.bad();
-    state.lives = Math.max(0, state.lives-1);
-    livesEl.textContent = livesStr(state.lives);
-    state.streak = 0; state.mult = 1; state.carry = 0;   // clear carry on fail
+    state.lives=Math.max(0,state.lives-1); livesEl.textContent=livesStr(state.lives);
+    state.streak=0; state.mult=1; state.carry=0;
     if(state.lives<=0){ gameOver(); return; }
-    feedback.innerHTML = `<span class="bad">${reason==='timeout'?'Time up':'Wrong'}.</span> Lives left: ${state.lives}`;
+    feedback.innerHTML=`<span class="bad">${reason==='timeout'?'Time up':'Wrong'}.</span> Lives left: ${state.lives}`;
     nextEquation();
+    scheduleLoop(); // <-- ensure timer continues after life loss
+    ansEl.value=''; setTimeout(()=>ansEl.scrollIntoView({block:'center'}),0);
   }
 
   function onWrong(){ loseLife('wrong'); }
 
   function submit(){
     if(!state.playing) return;
-    const raw = ansEl.value.trim();
-    if(raw==='') return;
-    const num = Number(raw);
-    ansEl.value='';
-    if(Number.isFinite(num) && num === state.current.value){ onCorrect(); }
-    else onWrong();
-    setTimeout(()=> ansEl.scrollIntoView({block:'center'}), 0);
+    const raw=ansEl.value.trim(); if(raw==='') return;
+    const num=Number(raw); ansEl.value='';
+    if(Number.isFinite(num) && num===state.current.value) onCorrect(); else onWrong();
   }
 
   function loop(){
     if(!state.playing) return;
-    const now = performance.now();
-    const dt = (now - state.lastTick)/1000;
-    state.lastTick = now;
-
-    state.tLeftSec -= dt;
-    const frac = Math.max(0, state.tLeftSec) / state.tTotalSec;
-    setMeterFrac(frac);
-
-    if(state.tLeftSec <= 0){
-      loseLife('timeout');
-      return;
-    }
-    state.timer = requestAnimationFrame(loop);
+    const now=performance.now(); const dt=(now-state.lastTick)/1000; state.lastTick=now;
+    state.tLeftSec-=dt; setMeterFrac(Math.max(0,state.tLeftSec)/state.tTotalSec);
+    if(state.tLeftSec<=0){ loseLife('timeout'); return; }
+    state.timer=requestAnimationFrame(loop);
   }
 
   function gameOver(){
-    state.playing = false;
-    feedback.innerHTML = `<span class="bad">Run over.</span> Final score: <b>${state.score}</b>`;
-    eqEl.textContent = '∞ Run Over';
+    state.playing=false; state.over=true;
+    feedback.innerHTML=`<span class="bad">Run over.</span> Final score: <b>${state.score}</b>`;
+    eqEl.textContent='∞ Run Over';
   }
 
-  function applySettingsToState(){
-    const ops = [];
-    if(opAdd.checked) ops.push('+');
-    if(opSub.checked) ops.push('-');
-    if(opMul.checked) ops.push('*');
-    if(opDiv.checked) ops.push('/');
-    if(ops.length===0){ ops.push('+'); opAdd.checked = true; }
-    state.ops = ops;
-    state.pow = opPow.checked;
-    state.sfx = soundToggle.checked;
+  function applySettings(){
+    const ops=[]; if(opAdd.checked)ops.push('+'); if(opSub.checked)ops.push('-'); if(opMul.checked)ops.push('*'); if(opDiv.checked)ops.push('/');
+    if(ops.length===0){ops.push('+');opAdd.checked=true}
+    state.ops=ops; state.pow=opPow.checked; state.sfx=soundToggle.checked;
   }
 
-  subBtn.addEventListener('click', submit);
-  startBtn.addEventListener('click', ()=>{ if(!state.current.text){ state.lives=state.maxLives; livesEl.textContent=livesStr(state.lives); nextEquation(); } start(); });
-  pauseBtn.addEventListener('click', pause);
-  resetBtn.addEventListener('click', reset);
+  subBtn.addEventListener('click',submit);
+  startBtn.addEventListener('click',()=>start());
+  pauseBtn.addEventListener('click',pause);
+  resetBtn.addEventListener('click',reset);
 
-  ansEl.addEventListener('focus', ()=> setTimeout(()=> ansEl.scrollIntoView({block:'center'}), 50));
-  ansEl.addEventListener('keydown', (e)=>{
-    if(e.key==='Enter'){ submit(); }
-    if(e.key==='Escape'){ ansEl.blur(); }
+  ansEl.addEventListener('focus',()=>setTimeout(()=>ansEl.scrollIntoView({block:'center'}),50));
+  ansEl.addEventListener('keydown',e=>{if(e.key==='Enter')submit(); if(e.key==='Escape')ansEl.blur();});
+
+  document.addEventListener('keydown',e=>{
+    if(e.key===' '){e.preventDefault();pause();}
+    if(e.key==='Backspace' && document.activeElement!==ansEl){e.preventDefault();ansEl.value='';}
   });
 
-  document.addEventListener('keydown', (e)=>{
-    if(e.key===' '){ e.preventDefault(); pause(); }
-    if(e.key==='Backspace' && document.activeElement!==ansEl){ e.preventDefault(); ansEl.value=''; }
-  });
+  openSettings?.addEventListener('click',()=>settingsDlg.showModal());
+  closeSettings?.addEventListener('click',()=>settingsDlg.close());
+  saveSettings?.addEventListener('click',()=>{applySettings();settingsDlg.close();});
 
-  openSettings.addEventListener('click', ()=>settingsDlg.showModal());
-  closeSettings.addEventListener('click', ()=>settingsDlg.close());
-  saveSettings.addEventListener('click', ()=>{ applySettingsToState(); settingsDlg.close(); });
-
-  how.addEventListener('click', (e)=>{ e.preventDefault(); howDlg.showModal(); });
-  howClose.addEventListener('click', ()=> howDlg.close());
+  how?.addEventListener('click',e=>{e.preventDefault();howDlg.showModal();});
+  howClose?.addEventListener('click',()=>howDlg.close());
 
   try{
-    const pref = JSON.parse(localStorage.getItem('inf_prefs')||'{}');
-    if(pref){
-      opAdd.checked = pref.add ?? true; opSub.checked = pref.sub ?? true;
-      opMul.checked = pref.mul ?? true; opDiv.checked = pref.div ?? true;
-      opPow.checked = pref.pow ?? false; soundToggle.checked = pref.sfx ?? true;
-      applySettingsToState();
-    }
+    const pref=JSON.parse(localStorage.getItem('inf_prefs')||'{}');
+    if(pref){opAdd.checked=pref.add??true;opSub.checked=pref.sub??true;opMul.checked=pref.mul??true;opDiv.checked=pref.div??true;opPow.checked=pref.pow??false;soundToggle.checked=pref.sfx??true;applySettings();}
   }catch(_){}
-  window.addEventListener('beforeunload', ()=> {
-    const pref = {
-      add:opAdd.checked, sub:opSub.checked, mul:opMul.checked, div:opDiv.checked, pow:opPow.checked, sfx:soundToggle.checked
-    };
-    localStorage.setItem('inf_prefs', JSON.stringify(pref));
+  window.addEventListener('beforeunload',()=>{
+    const pref={add:opAdd?.checked,sub:opSub?.checked,mul:opMul?.checked,div:opDiv?.checked,pow:opPow?.checked,sfx:soundToggle?.checked};
+    localStorage.setItem('inf_prefs',JSON.stringify(pref));
   });
 
-  livesEl.textContent = livesStr(state.lives);
-  inputBox.addEventListener('click', ()=> ansEl.focus());
+  livesEl.textContent=livesStr(state.lives);
+  inputBox.addEventListener('click',()=>ansEl.focus());
 })();
 </script>
 </body>
